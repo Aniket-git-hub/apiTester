@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Letsbug - Lightweight API Tester</title>
+    <meta name="theme-color" content="#4285f4" />
+    <meta name="color-scheme" content="dark light">
+    <meta name="description"
+        content="A lightweight, open-source alternative to Postman for testing APIs directly in your browser.">
+    <meta name="keywords" content="API, testing, developer tools, Postman alternative">
+    <meta name="author" content="Your Name">
+    <link rel="canonical" href="https://yourdomain.com/api-tester">
+    <meta property="og:title" content="Letsbug - Lightweight API Tester">
+    <meta property="og:description"
+        content="A lightweight, open-source alternative to Postman for testing APIs directly in your browser.">
+    <meta property="og:image" content="https://yourdomain.com/path-to-image.jpg">
+    <meta property="og:url" content="https://yourdomain.com/api-tester">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="Letsbug - Lightweight API Tester">
+    <meta name="twitter:description"
+        content="A lightweight, open-source alternative to Postman for testing APIs directly in your browser.">
+    <meta name="twitter:image" content="https://yourdomain.com/path-to-image.jpg">
+    <link rel="stylesheet" href="./style.css">
+</head>
+
+<body>
+    <header>
+        <h1>
+            <a href="https://portfolio.letsbug.in" target="_blank">
+                Letsbug
+            </a>
+        </h1>
+        <button id="toggle-theme">
+            Toggle Theme
+        </button>
+    </header>
+    <main>
+        <aside class="sidebar">
+            <button id="new-request">New Request</button>
+            <h2>Requests</h2>
+            <ul id="request-list">
+            </ul>
+        </aside>
+
+        <div class="container">
+            <div class="request-section">
+                <select id="request-method" aria-label="HTTP Method">
+                    <option value="GET">GET</option>
+                    <option value="POST">POST</option>
+                    <option value="PUT">PUT</option>
+                    <option value="DELETE">DELETE</option>
+                    <option value="PATCH">PATCH</option>
+                </select>
+                <input type="text" id="request-url" placeholder="Enter API URL" aria-label="API URL">
+                <button id="send-request">Send Request</button>
+                <button id="save-request">Save Request</button>
+            </div>
+
+            <div class="tabs">
+                <select id="content-type" aria-label="Content Type">
+                    <option value="auto">Auto</option>
+                    <option value="application/json">JSON</option>
+                    <option value="application/x-www-form-urlencoded">Form URL Encoded</option>
+                    <option value="multipart/form-data">Form Data</option>
+                </select>
+                <button class="tab-link" onclick="openTab(event, 'auth-section')">Authorization</button>
+                <button class="tab-link active" onclick="openTab(event, 'headers-section')">Headers</button>
+                <button class="tab-link" onclick="openTab(event, 'query-section')">Query Parameters</button>
+                <button class="tab-link" onclick="openTab(event, 'form-data-section')">Form Data</button>
+                <button class="tab-link" onclick="openTab(event, 'body-section')">JSON Body</button>
+            </div>
+
+            <div id="auth-section" class="tab-content" style="display:none;">
+                <select id="auth-type">
+                    <option value="none">No Auth</option>
+                    <option value="bearer">Bearer Token</option>
+                    <option value="basic">Basic Auth</option>
+                </select>
+                <div id="bearer-auth" style="display:none;">
+                    <input type="text" id="auth-token" placeholder="Bearer Token">
+                </div>
+                <div id="basic-auth" style="display:none;">
+                    <input type="text" id="auth-username" placeholder="Username">
+                    <input type="password" id="auth-password" placeholder="Password">
+                </div>
+            </div>
+
+            <div id="headers-section" class="tab-content">
+                <button id="add-header">Add Header</button>
+            </div>
+
+            <div id="query-section" class="tab-content" style="display:none;">
+                <button id="add-query">Add Query Param</button>
+            </div>
+
+            <div id="form-data-section" class="tab-content" style="display:none;">
+                <button id="add-form-data">Add Form Data</button>
+                <div id="form-data-container"></div>
+            </div>
+
+            <div id="body-section" class="tab-content" style="display:none;">
+                <h3>Body Data</h3>
+                <textarea id="request-body" placeholder="Enter JSON body or form data" rows="10"></textarea>
+            </div>
+
+            <div id="response-section">
+                <h3>Response</h3>
+                <div id="response-output"></div>
+            </div>
+        </div>
+    </main>
+
+    <script src="./script.js"></script>
+</body>
+
+</html>
