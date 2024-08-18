@@ -4,25 +4,28 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Letsbug - Lightweight API Tester</title>
+    <title>HTTP Client - letsbug</title>
     <meta name="theme-color" content="#4285f4" />
     <meta name="color-scheme" content="dark light">
+    <link rel="icon" type="image/x-icon" href="favicon.ico">
     <meta name="description"
         content="A lightweight, open-source alternative to Postman for testing APIs directly in your browser.">
     <meta name="keywords" content="API, testing, developer tools, Postman alternative">
     <meta name="author" content="Your Name">
-    <link rel="canonical" href="https://yourdomain.com/api-tester">
+    <link rel="canonical" href="https://apitester.letsbug.in/apitester.png">
     <meta property="og:title" content="Letsbug - Lightweight API Tester">
     <meta property="og:description"
         content="A lightweight, open-source alternative to Postman for testing APIs directly in your browser.">
-    <meta property="og:image" content="https://yourdomain.com/path-to-image.jpg">
-    <meta property="og:url" content="https://yourdomain.com/api-tester">
+    <meta property="og:image" content="https://apitester.letsbug.in/apitester.png">
+    <meta property="og:url" content="https://apitester.letsbug.in/apitester.png">
     <meta name="twitter:card" content="summary_large_image">
     <meta name="twitter:title" content="Letsbug - Lightweight API Tester">
     <meta name="twitter:description"
         content="A lightweight, open-source alternative to Postman for testing APIs directly in your browser.">
-    <meta name="twitter:image" content="https://yourdomain.com/path-to-image.jpg">
+    <meta name="twitter:image" content="https://apitester.letsbug.in/apitester.png">
     <link rel="stylesheet" href="./style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/default.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
 </head>
 
 <body>
@@ -32,9 +35,14 @@
                 Letsbug
             </a>
         </h1>
-        <button id="toggle-theme">
-            Toggle Theme
-        </button>
+        <div>
+            <a href="https://github.com/Aniket-git-hub/apiTester" target="_blank">
+                GitHub
+            </a>
+            <button id="toggle-theme">
+                Toggle Theme
+            </button>
+        </div>
     </header>
     <main>
         <aside class="sidebar">
@@ -55,21 +63,22 @@
                 </select>
                 <input type="text" id="request-url" placeholder="Enter API URL" aria-label="API URL">
                 <button id="send-request">Send Request</button>
-                <button id="save-request">Save Request</button>
+                <button id="save-request">Save</button>
             </div>
 
             <div class="tabs">
+                <button class="tab-link" data-target="auth-section"
+                    onclick="openTab(event, 'auth-section')">Authorization</button>
+                <button class="tab-link active" data-target="headers-section"
+                    onclick="openTab(event, 'headers-section')">Headers</button>
+                <button class="tab-link" data-target="query-section" onclick="openTab(event, 'query-section')">Query
+                    Parameters</button>
                 <select id="content-type" aria-label="Content Type">
-                    <option value="auto">Auto</option>
+                    <option value="" disabled selected>Content Type</option>
                     <option value="application/json">JSON</option>
                     <option value="application/x-www-form-urlencoded">Form URL Encoded</option>
                     <option value="multipart/form-data">Form Data</option>
                 </select>
-                <button class="tab-link" onclick="openTab(event, 'auth-section')">Authorization</button>
-                <button class="tab-link active" onclick="openTab(event, 'headers-section')">Headers</button>
-                <button class="tab-link" onclick="openTab(event, 'query-section')">Query Parameters</button>
-                <button class="tab-link" onclick="openTab(event, 'form-data-section')">Form Data</button>
-                <button class="tab-link" onclick="openTab(event, 'body-section')">JSON Body</button>
             </div>
 
             <div id="auth-section" class="tab-content" style="display:none;">
@@ -100,6 +109,11 @@
                 <div id="form-data-container"></div>
             </div>
 
+            <div id="form-urlencoded-section" class="tab-content" style="display:none;">
+                <button id="add-form-urlencoded">Add Form URL Encoded</button>
+                <div id="form-urlencoded-container"></div>
+            </div>
+
             <div id="body-section" class="tab-content" style="display:none;">
                 <h3>Body Data</h3>
                 <textarea id="request-body" placeholder="Enter JSON body or form data" rows="10"></textarea>
@@ -113,6 +127,7 @@
     </main>
 
     <script src="./script.js"></script>
+
 </body>
 
 </html>

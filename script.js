@@ -1,3 +1,5 @@
+let currentLoadedRequest = null;
+
 const themeToggle = document.getElementById('toggle-theme');
 themeToggle.addEventListener('click', () => {
     document.body.classList.toggle('dark-theme');
@@ -13,16 +15,21 @@ document.addEventListener('DOMContentLoaded', () => {
     const saveRequestBtn = document.getElementById('save-request');
     const newRequestBtn = document.getElementById('new-request');
     const authTypeSelect = document.getElementById('auth-type');
+    const contentTypeSelect = document.getElementById('content-type');
 
     sendRequestBtn.addEventListener('click', sendRequest);
     saveRequestBtn.addEventListener('click', saveCurrentRequest);
     newRequestBtn.addEventListener('click', createNewRequest);
     authTypeSelect.addEventListener('change', toggleAuthFields);
+    contentTypeSelect.addEventListener('change', handleContentTypeChange);
+    contentTypeSelect.addEventListener('click', contentTypeSelected);
 
     initializeHeadersSection();
     initializeQuerySection();
     initializeFormDataSection();
+    initializeFormUrlEncodedSection();
     loadSavedRequests();
+    loadCurrentState();
 
     const savedTheme = localStorage.getItem('theme');
     if (savedTheme) {
@@ -135,18 +142,23 @@ function sendRequest() {
             displayError(error);
         })
 
+
 }
 
 function displayResponse(data) {
     const outputElement = document.getElementById('response-output');
     let bodyContent = '';
+    let bodyHTML = '';
+    let isHtml = false;
 
     switch (data.bodyType) {
         case 'json':
             bodyContent = `<pre><code class="language-json">${JSON.stringify(data.body, null, 2)}</code></pre>`;
             break;
         case 'html':
+            isHtml = true;
             bodyContent = `<pre><code class="language-html">${escapeHtml(data.body)}</code></pre>`;
+            bodyHTML = data.body;
             break;
         case 'text':
         default:
@@ -159,8 +171,32 @@ function displayResponse(data) {
         <h4>Headers:</h4>
         <pre><code class="language-json">${JSON.stringify(data.headers, null, 2)}</code></pre>
         <h4>Body:</h4>
-        ${bodyContent}
+        ${isHtml ? `
+            <select id="view-selector">
+                <option value="raw">Raw</option>
+                <option value="preview">Preview</option>
+            </select>
+        ` : ''}
+        <div id="body-content">
+            ${bodyContent}
+        </div>
     `;
+
+    hljs.highlightAll();
+
+    if (isHtml) {
+        const viewSelector = document.getElementById('view-selector');
+        const bodyContentDiv = document.getElementById('body-content');
+
+        viewSelector.addEventListener('change', (event) => {
+            if (event.target.value === 'raw') {
+                bodyContentDiv.innerHTML = bodyContent;
+                hljs.highlightAll();
+            } else {
+                bodyContentDiv.innerHTML = bodyHTML;
+            }
+        });
+    }
 }
 
 function escapeHtml(unsafe) {
@@ -227,8 +263,67 @@ function toggleAuthFields() {
     document.getElementById('basic-auth').style.display = authType === 'basic' ? ' flex' : 'none';
 }
 
+function contentTypeSelected() {
+    handleContentTypeChange()
+}
+
+function handleContentTypeChange() {
+    const contentType = document.getElementById('content-type').value;
+    const jsonSection = document.getElementById('body-section');
+    const formDataSection = document.getElementById('form-data-section');
+    const formUrlEncodedSection = document.getElementById('form-urlencoded-section');
+    const headerSection = document.getElementById('headers-section');
+    const querySection = document.getElementById('query-section');
+    const authSection = document.getElementById('auth-section');
+    const tabLinks = document.querySelectorAll('.tab-link');
+
+    let active = Array.from(tabLinks).find(link => link.classList.contains('active'));
+
+    headerSection.style.display = 'none';
+    querySection.style.display = 'none';
+    authSection.style.display = 'none';
+    jsonSection.style.display = 'none';
+    formDataSection.style.display = 'none';
+    formUrlEncodedSection.style.display = 'none';
+
+    tabLinks.forEach(link => link.classList.remove('active'));
+
+    switch (contentType) {
+        case 'application/json':
+            jsonSection.style.display = 'block';
+            break;
+        case 'multipart/form-data':
+            formDataSection.style.display = 'block';
+            break;
+        case 'application/x-www-form-urlencoded':
+            formUrlEncodedSection.style.display = 'block';
+            break;
+        default:
+            active.classList.add('active');
+            document.getElementById(active.dataset.target).style.display = 'block';
+            break;
+    }
+}
+
+function saveCurrentState(requestName) {
+    const currentState = {
+        requestName: requestName,
+        method: document.getElementById('request-method').value,
+        url: document.getElementById('request-url').value,
+        headers: getHeaders(),
+        queryParams: getQueryParams(),
+        authType: document.getElementById('auth-type').value,
+        authToken: document.getElementById('auth-token').value,
+        authUsername: document.getElementById('auth-username').value,
+        authPassword: document.getElementById('auth-password').value,
+        contentType: document.getElementById('content-type').value,
+        body: document.getElementById('request-body').value
+    };
+    localStorage.setItem('currentRequest', JSON.stringify(currentState));
+}
+
 function initializeHeadersSection() {
-    let headerCount = 1;
+    let headerCount = 0;
     const maxHeaders = 10;
     const headerContainer = document.getElementById('headers-section');
     const addHeaderBtn = document.getElementById('add-header');
@@ -271,7 +366,7 @@ function initializeHeadersSection() {
 }
 
 function initializeQuerySection() {
-    let queryCount = 1;
+    let queryCount = 0;
     const maxQueries = 15;
     const queryContainer = document.getElementById('query-section');
     const addQueryBtn = document.getElementById('add-query');
@@ -314,7 +409,7 @@ function initializeQuerySection() {
 }
 
 function initializeFormDataSection() {
-    let formDataCount = 1;
+    let formDataCount = 0;
     const maxFormData = 15;
     const formDataContainer = document.getElementById('form-data-container');
     const addFormDataBtn = document.getElementById('add-form-data');
@@ -378,7 +473,48 @@ function initializeFormDataSection() {
         }
     });
 
-    addFormDataRow(); // Add initial form data row
+    addFormDataRow();
+}
+
+function initializeFormUrlEncodedSection() {
+    let formUrlEncodedCount = 0;
+    const maxFormUrlEncoded = 15;
+    const formUrlEncodedContainer = document.getElementById('form-urlencoded-container');
+    const addFormUrlEncodedBtn = document.getElementById('add-form-urlencoded');
+
+    const addFormUrlEncodedRow = () => {
+        if (formUrlEncodedCount >= maxFormUrlEncoded) return;
+        const formUrlEncodedRowHTML = `
+            <div class="form-urlencoded-row">
+                <input type="text" class="form-urlencoded-key" placeholder="Key">
+                <input type="text" class="form-urlencoded-value" placeholder="Value">
+                <button class="remove-form-urlencoded">Remove</button>
+            </div>
+        `;
+        formUrlEncodedContainer.insertAdjacentHTML('beforeend', formUrlEncodedRowHTML);
+        formUrlEncodedCount++;
+        updateFormUrlEncodedControls();
+    };
+
+    const removeFormUrlEncodedRow = (button) => {
+        button.parentElement.remove();
+        formUrlEncodedCount--;
+        updateFormUrlEncodedControls();
+    };
+
+    const updateFormUrlEncodedControls = () => {
+        addFormUrlEncodedBtn.style.display = formUrlEncodedCount >= maxFormUrlEncoded ? 'none' : 'block';
+        document.querySelectorAll('.remove-form-urlencoded').forEach(button => {
+            button.style.display = formUrlEncodedCount > 1 ? 'inline-block' : 'none';
+        });
+    };
+
+    addFormUrlEncodedBtn.addEventListener('click', addFormUrlEncodedRow);
+    formUrlEncodedContainer.addEventListener('click', (e) => {
+        if (e.target.classList.contains('remove-form-urlencoded')) {
+            removeFormUrlEncodedRow(e.target);
+        }
+    });
 }
 
 function openTab(evt, tabName) {
@@ -390,29 +526,83 @@ function openTab(evt, tabName) {
 
     document.getElementById(tabName).style.display = 'block';
     evt.currentTarget.classList.add('active');
+
 }
 
 function createNewRequest() {
-    const requestList = document.getElementById('request-list');
-    const requestName = prompt('Enter a name for the request:');
+    let requestName = prompt('Enter a name to save this request:');
     if (requestName) {
+        clearRequestData();
+        const method = document.getElementById('request-method').value;
+        const originalName = requestName;
+        requestName = `${requestName} (${method})`;
+
+        let counter = 1;
+        while (localStorage.getItem(`request_${requestName}`)) {
+            requestName = `${originalName} (${method}) ${counter}`;
+            counter++;
+        }
+
+        const requestData = {
+            method: 'GET',
+            url: 'https://jsonplaceholder.typicode.com/todos/1',
+            headers: "",
+            queryParams: "",
+            authType: "",
+            authToken: "",
+            authUsername: "",
+            authPassword: "",
+            contentType: "",
+            body: ""
+        };
+
+        localStorage.setItem(`request_${requestName}`, JSON.stringify(requestData));
+
+        const requestList = document.getElementById('request-list');
         const newRequest = document.createElement('li');
-        newRequest.textContent = requestName;
+        newRequest.innerHTML = `
+            <span class="request-name">${requestName}</span>
+            <span class="delete-request">&times;</span>
+        `;
         newRequest.setAttribute('data-name', requestName);
         requestList.appendChild(newRequest);
 
-        newRequest.addEventListener('click', () => {
+        newRequest.querySelector('.request-name').addEventListener('click', () => {
             loadRequest(requestName);
         });
 
-        // Clear current request data
-        clearRequestData();
+        newRequest.querySelector('.delete-request').addEventListener('click', (e) => {
+            e.stopPropagation();
+            deleteRequest(requestName, newRequest);
+        });
+
+        currentLoadedRequest = requestName;
+        alert(`New request saved as "${requestName}"`);
+    }
+}
+
+function deleteRequest(requestName, listItem) {
+    if (confirm(`Are you sure you want to delete the request "${requestName}"?`)) {
+        localStorage.removeItem(`request_${requestName}`);
+        listItem.remove();
+        if (currentLoadedRequest === requestName) {
+            clearRequestData();
+            currentLoadedRequest = null;
+        }
     }
 }
 
 function saveCurrentRequest() {
-    const requestName = prompt('Enter a name to save this request:');
-    if (requestName) {
+    if (currentLoadedRequest) {
+        updateExistingRequest(currentLoadedRequest);
+    } else {
+        createNewRequest();
+    }
+}
+
+function updateExistingRequest(requestName) {
+    const confirmUpdate = confirm(`Do you want to update the existing request "${requestName}"?`);
+    if (confirmUpdate) {
         const requestData = {
             method: document.getElementById('request-method').value,
             url: document.getElementById('request-url').value,
@@ -427,17 +617,14 @@ function saveCurrentRequest() {
         };
 
         localStorage.setItem(`request_${requestName}`, JSON.stringify(requestData));
+        alert(`Request "${requestName}" has been updated.`);
+    }
+}
 
-        // Update the request list
-        const requestList = document.getElementById('request-list');
-        const newRequest = document.createElement('li');
-        newRequest.textContent = requestName;
-        newRequest.setAttribute('data-name', requestName);
-        requestList.appendChild(newRequest);
-
-        newRequest.addEventListener('click', () => {
-            loadRequest(requestName);
-        });
+function loadCurrentState() {
+    const currentState = JSON.parse(localStorage.getItem('currentRequest'));
+    if (currentState) {
+        loadRequest(currentState.requestName);
     }
 }
 
@@ -452,8 +639,9 @@ function loadRequest(name) {
         document.getElementById('auth-password').value = requestData.authPassword;
         document.getElementById('content-type').value = requestData.contentType;
         document.getElementById('request-body').value = requestData.body;
+        document.getElementById('content-type').value = requestData.contentType;
+        handleContentTypeChange();
 
-        // Load headers
         const headerContainer = document.getElementById('headers-section');
         headerContainer.innerHTML = '<button id="add-header">Add Header</button>';
         Object.entries(requestData.headers).forEach(([key, value]) => {
@@ -467,7 +655,6 @@ function loadRequest(name) {
             headerContainer.insertAdjacentHTML('beforeend', headerRowHTML);
         });
 
-        // Load query parameters
         const queryContainer = document.getElementById('query-section');
         queryContainer.innerHTML = '<button id="add-query">Add Query Param</button>';
         Object.entries(requestData.queryParams).forEach(([key, value]) => {
@@ -482,6 +669,8 @@ function loadRequest(name) {
         });
 
         toggleAuthFields();
+        saveCurrentState(name);
+        currentLoadedRequest = name;
     }
 }
 
@@ -511,22 +700,20 @@ function clearRequestData() {
     document.getElementById('content-type').value = 'auto';
     document.getElementById('request-body').value = '';
 
-    // Clear headers
     const headerContainer = document.getElementById('headers-section');
     headerContainer.innerHTML = '<button id="add-header">Add Header</button>';
 
-    // Clear query parameters
     const queryContainer = document.getElementById('query-section');
     queryContainer.innerHTML = '<button id="add-query">Add Query Param</button>';
 
-    // Clear form data
     const formDataContainer = document.getElementById('form-data-container');
     formDataContainer.innerHTML = '';
 
-    // Clear response
     document.getElementById('response-output').innerHTML = '';
 
     toggleAuthFields();
+    localStorage.removeItem('currentRequest');
+    currentLoadedRequest = null;
 }
 
 document.querySelector('.tab-link').click();
